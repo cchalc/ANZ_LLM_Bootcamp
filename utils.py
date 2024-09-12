@@ -14,15 +14,24 @@ from pathlib import Path
 username = spark.sql("SELECT current_user()").first()['current_user()']
 os.environ['USERNAME'] = username
 
-db_catalog = 'gen_ai_workshop'
+db_catalog = 'cjc'
 db_schema = 'datasets'
 db_volume = 'raw_data'
 raw_table = 'arxiv_data'
 hf_volume = 'hf_volume'
 
+# set up catalogs and directories
+# Setup Catalogs and directories
+spark.sql(f"CREATE CATALOG IF NOT EXISTS {db_catalog}")
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {db_catalog}.{db_schema}")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {db_catalog}.{db_schema}.{db_volume}")
+spark.sql(f"CREATE VOLUME IF NOT EXISTS {db_catalog}.{db_schema}.{hf_volume}")
+
+volume_folder = f"/Volumes/{db_catalog}/{db_schema}/{db_volume}/"
+
 #Internal dev
-#vector_search_endpoint = 'one-env-shared-endpoint-6' 
-vector_search_endpoint = 'gen_ai_workshop'
+vector_search_endpoint = 'one-env-shared-endpoint-0' 
+# vector_search_endpoint = 'gen_ai_workshop'
 
 # # setting up transformers cache
 hf_volume_path = f'/Volumes/{db_catalog}/{db_schema}/{hf_volume}'

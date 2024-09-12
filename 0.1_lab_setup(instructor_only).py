@@ -15,16 +15,17 @@ import os
 import requests
 
 # COMMAND ----------
+
 # DBTITLE 1,Setup utils to ensure consistency
 # MAGIC %run ./utils
 
 # COMMAND ----------
 
-# Setup Catalogs and directories
-spark.sql(f"CREATE CATALOG IF NOT EXISTS {db_catalog}")
-spark.sql(f"CREATE SCHEMA IF NOT EXISTS {db_catalog}.{db_schema}")
-spark.sql(f"CREATE VOLUME IF NOT EXISTS {db_catalog}.{db_schema}.{db_volume}")
-volume_folder = f"/Volumes/{db_catalog}/{db_schema}/{db_volume}/"
+# # Setup Catalogs and directories
+# spark.sql(f"CREATE CATALOG IF NOT EXISTS {db_catalog}")
+# spark.sql(f"CREATE SCHEMA IF NOT EXISTS {db_catalog}.{db_schema}")
+# spark.sql(f"CREATE VOLUME IF NOT EXISTS {db_catalog}.{db_schema}.{db_volume}")
+# volume_folder = f"/Volumes/{db_catalog}/{db_schema}/{db_volume}/"
 
 # COMMAND ----------
 
@@ -70,6 +71,54 @@ for pdf in pdfs.keys():
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC # Getting access to Llama-2-13b-chat-hf
+# MAGIC
+# MAGIC First, we need to gain access to Llama 2 by accepting Meta's terms of services. The steps to do so are outlined below.
+# MAGIC
+# MAGIC ## Gain access to Llama 2 model
+# MAGIC
+# MAGIC You will first need to register for access to Meta's Llama 2 model in two places:
+# MAGIC
+# MAGIC - [Log into **Hugging Face** and accept Meta TOS](https://huggingface.co/meta-llama/Llama-2-13b-chat-hf/tree/main)
+# MAGIC - Also [register your interest on **Meta's** site](https://ai.meta.com/resources/models-and-libraries/llama-downloads) with the **same** email address you use for your Hugging Face login
+# MAGIC
+# MAGIC You should get an approval response within a few hours.
+# MAGIC
+# MAGIC ## Generate Hugging Face token
+# MAGIC
+# MAGIC Next, [generate a Hugging Face access token](https://huggingface.co/settings/token). This will be required to access the model.
+# MAGIC - [Token creation page](https://huggingface.co/settings/token)
+# MAGIC
+# MAGIC ## Save Hugging Face token to Databricks Secrets
+# MAGIC
+# MAGIC Throughout the Solution Accelerator you can utilise your token in plain text. However, for completeness of security, we recommend that you store your token in [Databricks Secrets](https://docs.databricks.com/en/security/secrets/index.html). This will ensure your token is obfuscated in your source code.
+# MAGIC
+# MAGIC You will need to use the [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) to do this. For this example we'll use:
+# MAGIC
+# MAGIC - Scope: `tokens`
+# MAGIC - Key name: `hf_token`
+# MAGIC
+# MAGIC The CLI steps are:
+# MAGIC
+# MAGIC - Create the secrets scope: `databricks secrets create-scope tokens`
+# MAGIC - Add our token as a secret: `databricks secrets put-secret tokens hf_token --string-value {paste-hugging-face-token-here}`
+# MAGIC
+# MAGIC ## Related documentation
+# MAGIC
+# MAGIC - [`huggingface_hub.notebook_login`](https://huggingface.co/docs/huggingface_hub/main/en/package_reference/login#huggingface_hub.notebook_login)
+# MAGIC
+
+# COMMAND ----------
+
+from huggingface_hub import login, notebook_login, snapshot_download
+
+# Enclose the scope and key names in quotes
+token = dbutils.secrets.get(scope="cjc", key="hf_token")
+login(token=token)
+
+# COMMAND ----------
+
 # DBTITLE 1,To Examine Embeddings we need to download from huggingface
 from pathlib import Path
 
@@ -102,11 +151,12 @@ for lib_name in repo_list.keys():
             )
 
 # COMMAND ----------
+
             
 # Setup Vector Search Endpoint
 from databricks.vector_search.client import VectorSearchClient
 
-vsc = VectorSearchClient()
+vsc = VectorSearchClient(disable_notice=True)
 
 # check existing endpoints
 active_endpoints = vsc.list_endpoints()
@@ -119,3 +169,7 @@ else:
         name = vector_search_endpoint,
         endpoint_type="STANDARD"
     )
+
+# COMMAND ----------
+
+
